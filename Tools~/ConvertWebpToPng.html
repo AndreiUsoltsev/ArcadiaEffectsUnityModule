@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Arcadia Effects: WebP → PNG</title>
+<style>
+  body { font: 14px/1.5 system-ui, sans-serif; background: #15161a; color: #ddd; margin: 32px; }
+  h1 { font-size: 18px; }
+  .drop { border: 2px dashed #555; border-radius: 8px; padding: 32px; text-align: center; cursor: pointer; }
+  .drop.over { border-color: #59e3e2; }
+  pre { background: #0c0c10; padding: 12px; border-radius: 6px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+<h1>Arcadia Effects: перекодировать WebP-текстуры эффекта в PNG</h1>
+<p>Unity не умеет декодировать WebP. Перетащите сюда файлы эффектов (<code>library/*.json</code>):
+все текстуры WebP внутри будут перекодированы в PNG, и браузер скачает исправленные файлы с тем же именем.
+Остальное содержимое не меняется. Работает офлайн, файлы никуда не отправляются.</p>
+<div class="drop" id="drop">Перетащите JSON сюда или нажмите, чтобы выбрать</div>
+<input type="file" id="file" accept=".json" multiple hidden>
+<pre id="log"></pre>
+<script>
+const log = s => { document.getElementById('log').textContent += s + '\n'; };
+
+function toPng(dataUrl) {
+  return new Promise((ok, fail) => {
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth; c.height = img.naturalHeight;
+      c.getContext('2d').drawImage(img, 0, 0);
+      ok(c.toDataURL('image/png'));
+    };
+    img.onerror = () => fail(new Error('decode failed'));
+    img.src = dataUrl;
+  });
+}
+
+async function convert(file) {
+  const json = JSON.parse(await file.text());
+  const tex = json.tex || {};
+  let n = 0;
+  for (const id of Object.keys(tex)) {
+    const url = tex[id];
+    if (typeof url !== 'string' || /^data:image\/(png|jpe?g)[;,]/i.test(url)) continue;
+    tex[id] = await toPng(url);
+    n++;
+  }
+  if (!n) { log(file.name + ': WebP-текстур нет, файл не изменён'); return; }
+  const blob = new Blob([JSON.stringify(json)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = file.name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+  log(file.name + ': перекодировано текстур — ' + n);
+}
+
+async function handle(files) {
+  for (const f of files) {
+    try { await convert(f); } catch (e) { log(f.name + ': ошибка — ' + e.message); }
+  }
+}
+
+const drop = document.getElementById('drop'), input = document.getElementById('file');
+drop.onclick = () => input.click();
+input.onchange = () => handle(input.files);
+drop.ondragover = e => { e.preventDefault(); drop.classList.add('over'); };
+drop.ondragleave = () => drop.classList.remove('over');
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove('over'); handle(e.dataTransfer.files); };
+</script>
+</body>
+</html>

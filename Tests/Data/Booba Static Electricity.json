@@ -1,0 +1,350 @@
+{
+  "app": "arcadia-effects",
+  "v": 1,
+  "doc": {
+    "v": 2,
+    "id": "fx_booba_static",
+    "name": "Booba Static Electricity",
+    "comp": { "w": 512, "h": 512, "dur": 2.0, "fps": 60 },
+    "cam": { "comp": 0 },
+    "exp": {
+      "cols": 4,
+      "rows": 4,
+      "frames": 16,
+      "cellW": 256,
+      "cellH": 256,
+      "t0": 0.4,
+      "t1": 1.68,
+      "cuts": null,
+      "mode": "rgba",
+      "thr": 0,
+      "ss": 2,
+      "pixelArt": false
+    },
+    "textures": [],
+    "layers": [
+      {
+        "id": "lr_booba_static_force",
+        "name": "Spin Vortex",
+        "type": "force",
+        "on": true,
+        "start": 0,
+        "end": 2.0,
+        "opacity": 1,
+        "targets": ["lr_booba_static_radial", "lr_booba_static_sparks"],
+        "ff": {
+          "fields": [
+            { "id": "ff_booba_drive", "mode": "drive", "x": 0, "y": 0, "sx": 245, "sy": 245, "strength": 660, "falloff": 1.15 },
+            { "id": "ff_booba_pull", "mode": "collapse", "x": 0, "y": 0, "sx": 245, "sy": 245, "strength": 210, "falloff": 1.35 }
+          ]
+        }
+      },
+      {
+        "id": "lr_booba_static_sparks",
+        "name": "Electric Sparks",
+        "type": "emitter",
+        "on": true,
+        "start": 0,
+        "end": 2.0,
+        "blend": "add",
+        "opacity": 1,
+        "glowL": 1.1,
+        "glowLR": 12,
+        "fadeOn": true,
+        "fadeX": 0,
+        "fadeY": 0,
+        "fadeR": 244,
+        "fadeSoft": 0.25,
+        "em": {
+          "shape": "ring",
+          "sx": 118,
+          "sy": 28,
+          "dir": "out",
+          "angle": -90,
+          "spread": 75,
+          "speed": 330,
+          "speedRnd": 0.55,
+          "rate": 64,
+          "bursts": [],
+          "seed": 11,
+          "subStep": true
+        },
+        "pt": {
+          "render": "sprite",
+          "sprite": { "kind": "shape", "id": "streak", "p": {} },
+          "life": 0.27,
+          "lifeRnd": 0.35,
+          "size": 28,
+          "sizeRnd": 0.45,
+          "sizeOL": { "pts": [{ "t": 0, "v": 0.4 }, { "t": 0.2, "v": 1 }, { "t": 1, "v": 0.12 }] },
+          "opacityOL": { "pts": [{ "t": 0, "v": 1 }, { "t": 0.45, "v": 0.92 }, { "t": 0.7, "v": 0.35 }, { "t": 0.85, "v": 0.85 }, { "t": 1, "v": 0 }] },
+          "grad": {
+            "stops": [
+              { "t": 0, "c": [255, 255, 255] },
+              { "t": 0.35, "c": [120, 245, 255] },
+              { "t": 1, "c": [20, 112, 255] }
+            ]
+          },
+          "alignVel": true,
+          "stretch": 1.75,
+          "drag": 2.7,
+          "gravX": 0,
+          "gravY": 0,
+          "zigzag": 720,
+          "glow": 0.6,
+          "glowSize": 1.7,
+          "glowBlur": 0.2
+        }
+      },
+      {
+        "id": "lr_booba_static_radial",
+        "name": "Radial Bolts",
+        "type": "emitter",
+        "on": true,
+        "start": 0,
+        "end": 2.0,
+        "blend": "add",
+        "opacity": 1,
+        "glowL": 2.4,
+        "glowLR": 20,
+        "fadeOn": true,
+        "fadeX": 0,
+        "fadeY": 0,
+        "fadeR": 244,
+        "fadeSoft": 0.3,
+        "em": {
+          "shape": "ring",
+          "sx": 72,
+          "sy": 20,
+          "dir": "out",
+          "angle": 0,
+          "spread": 48,
+          "speed": 700,
+          "speedRnd": 0.25,
+          "rate": 28,
+          "bursts": [],
+          "seed": 7,
+          "subStep": true,
+          "branch": {
+            "chance": 8,
+            "spread": 44,
+            "lifeScale": 0.62,
+            "sizeScale": 0.68,
+            "speedScale": 0.92,
+            "maxGen": 2
+          },
+          "sub": {
+            "on": true,
+            "emit": "death",
+            "count": 2,
+            "dir": "omni",
+            "spread": 180,
+            "speed": 135,
+            "speedRnd": 0.6,
+            "inherit": 0.15,
+            "maxGen": 1,
+            "budget": 1500,
+            "under": false,
+            "pt": {
+              "render": "sprite",
+              "sprite": { "kind": "shape", "id": "spark", "p": {} },
+              "life": 0.18,
+              "lifeRnd": 0.3,
+              "size": 26,
+              "sizeRnd": 0.4,
+              "sizeOL": { "pts": [{ "t": 0, "v": 1.15 }, { "t": 1, "v": 0.15 }] },
+              "opacityOL": { "pts": [{ "t": 0, "v": 1 }, { "t": 0.5, "v": 0.8 }, { "t": 1, "v": 0 }] },
+              "grad": {
+                "stops": [
+                  { "t": 0, "c": [255, 255, 255] },
+                  { "t": 0.5, "c": [110, 240, 255] },
+                  { "t": 1, "c": [28, 108, 255] }
+                ]
+              },
+              "drag": 3,
+              "spin": 120,
+              "spinRnd": 1,
+              "glow": 0.55,
+              "glowSize": 1.6,
+              "glowBlur": 0.2
+            }
+          }
+        },
+        "pt": {
+          "render": "trail",
+          "trailCore": 0.9,
+          "life": 0.24,
+          "lifeRnd": 0.25,
+          "size": 11.5,
+          "sizeRnd": 0.3,
+          "sizeOL": { "pts": [{ "t": 0, "v": 1.2 }, { "t": 0.7, "v": 0.95 }, { "t": 1, "v": 0.22 }] },
+          "sizeOT": { "pts": [{ "t": 0, "v": 0.5 }, { "t": 0.35, "v": 1 }, { "t": 0.8, "v": 0.75 }, { "t": 1, "v": 0.18 }] },
+          "opacityOL": {
+            "pts": [
+              { "t": 0, "v": 1 },
+              { "t": 0.35, "v": 1 },
+              { "t": 0.52, "v": 0.38 },
+              { "t": 0.68, "v": 1 },
+              { "t": 0.84, "v": 0.48 },
+              { "t": 1, "v": 0 }
+            ]
+          },
+          "grad": {
+            "stops": [
+              { "t": 0, "c": [255, 255, 255] },
+              { "t": 0.4, "c": [82, 238, 255] },
+              { "t": 1, "c": [18, 98, 255] }
+            ]
+          },
+          "zigzag": 1600,
+          "drag": 1.15,
+          "glow": 0.8,
+          "glowSize": 1.9,
+          "glowBlur": 0.25
+        }
+      },
+      {
+        "id": "lr_booba_static_orbit",
+        "name": "Orbiting Ring Arcs",
+        "type": "emitter",
+        "on": true,
+        "start": 0,
+        "end": 2.0,
+        "blend": "add",
+        "opacity": 1,
+        "glowL": 2.2,
+        "glowLR": 18,
+        "fadeOn": true,
+        "fadeX": 0,
+        "fadeY": 0,
+        "fadeR": 244,
+        "fadeSoft": 0.28,
+        "em": {
+          "shape": "point",
+          "dir": "omni",
+          "speed": 95,
+          "speedRnd": 0.4,
+          "rate": 52,
+          "bursts": [],
+          "seed": 3,
+          "subStep": true,
+          "path": {
+            "on": true,
+            "mode": "both",
+            "closed": true,
+            "smooth": true,
+            "along": "random",
+            "jitter": 18,
+            "aim": "tangent",
+            "attract": 4.2,
+            "lock": 0.55,
+            "flow": 560,
+            "fast": true,
+            "nodes": [
+              { "x": 0, "y": -136 },
+              { "x": 96, "y": -96 },
+              { "x": 136, "y": 0 },
+              { "x": 96, "y": 96 },
+              { "x": 0, "y": 136 },
+              { "x": -96, "y": 96 },
+              { "x": -136, "y": 0 },
+              { "x": -96, "y": -96 }
+            ]
+          },
+          "branch": {
+            "chance": 11,
+            "spread": 38,
+            "lifeScale": 0.6,
+            "sizeScale": 0.68,
+            "speedScale": 1.0,
+            "maxGen": 2
+          }
+        },
+        "pt": {
+          "render": "trail",
+          "trailCore": 0.88,
+          "life": 0.28,
+          "lifeRnd": 0.25,
+          "size": 10.0,
+          "sizeRnd": 0.25,
+          "sizeOL": { "pts": [{ "t": 0, "v": 0.85 }, { "t": 0.5, "v": 1.15 }, { "t": 1, "v": 0.25 }] },
+          "sizeOT": { "pts": [{ "t": 0, "v": 0.22 }, { "t": 0.5, "v": 1 }, { "t": 1, "v": 0.22 }] },
+          "opacityOL": {
+            "pts": [
+              { "t": 0, "v": 0.95 },
+              { "t": 0.3, "v": 1 },
+              { "t": 0.55, "v": 0.42 },
+              { "t": 0.75, "v": 0.98 },
+              { "t": 1, "v": 0 }
+            ]
+          },
+          "grad": {
+            "stops": [
+              { "t": 0, "c": [255, 255, 255] },
+              { "t": 0.42, "c": [68, 232, 255] },
+              { "t": 1, "c": [16, 86, 250] }
+            ]
+          },
+          "zigzag": 1450,
+          "drag": 0.5,
+          "glow": 0.7,
+          "glowSize": 1.85,
+          "glowBlur": 0.25
+        }
+      },
+      {
+        "id": "lr_booba_static_corona",
+        "name": "Electric Corona",
+        "type": "emitter",
+        "on": true,
+        "start": 0,
+        "end": 2.0,
+        "blend": "screen",
+        "opacity": 0.9,
+        "glowL": 1.3,
+        "glowLR": 22,
+        "fadeOn": true,
+        "fadeX": 0,
+        "fadeY": 0,
+        "fadeR": 240,
+        "fadeSoft": 0.35,
+        "em": {
+          "shape": "ring",
+          "sx": 112,
+          "sy": 36,
+          "dir": "out",
+          "speed": 45,
+          "speedRnd": 0.5,
+          "rate": 36,
+          "bursts": [],
+          "seed": 19,
+          "subStep": false
+        },
+        "pt": {
+          "render": "sprite",
+          "sprite": { "kind": "shape", "id": "soft", "p": {} },
+          "life": 0.45,
+          "lifeRnd": 0.3,
+          "size": 90,
+          "sizeRnd": 0.35,
+          "sizeOL": { "pts": [{ "t": 0, "v": 0.5 }, { "t": 0.5, "v": 1 }, { "t": 1, "v": 0.7 }] },
+          "opacityOL": { "pts": [{ "t": 0, "v": 0 }, { "t": 0.35, "v": 0.32 }, { "t": 0.7, "v": 0.24 }, { "t": 1, "v": 0 }] },
+          "grad": {
+            "stops": [
+              { "t": 0, "c": [52, 215, 255] },
+              { "t": 0.5, "c": [20, 106, 255] },
+              { "t": 1, "c": [10, 38, 175] }
+            ]
+          },
+          "drag": 2.0,
+          "turbMode": "curl",
+          "turbScale": 85,
+          "turbWind": 90,
+          "turbRise": 0,
+          "turbRamp": 0
+        }
+      }
+    ]
+  },
+  "tex": {}
+}
