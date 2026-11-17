@@ -1,0 +1,991 @@
+{
+  "app": "arcadia-effects",
+  "v": 2,
+  "doc": {
+    "v": 2,
+    "id": "fx_throwstoys_green_miss",
+    "name": "Throwstoys Green Miss",
+    "comp": {
+      "w": 384,
+      "h": 384,
+      "dur": 0.9,
+      "fps": 60
+    },
+    "cam": {
+      "comp": 0
+    },
+    "exp": {
+      "cols": 8,
+      "rows": 4,
+      "frames": 32,
+      "cellW": 192,
+      "cellH": 192,
+      "t0": 0,
+      "t1": 0.9,
+      "mode": "rgba",
+      "ss": 2
+    },
+    "textures": [],
+    "layers": [
+      {
+        "id": "lr_throwstoys_green_miss_1",
+        "name": "Lime contact glint",
+        "type": "sprite",
+        "blend": "screen",
+        "end": 0.17,
+        "opacity": {
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.85,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.045,
+              "v": 0.7,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.17,
+              "v": 0,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            }
+          ]
+        },
+        "sp": {
+          "sprite": {
+            "kind": "shape",
+            "id": "star",
+            "p": {
+              "n": 6,
+              "inr": 0.16
+            }
+          },
+          "size": 65,
+          "color": [
+            191,
+            255,
+            110
+          ],
+          "scale": {
+            "keys": [
+              {
+                "t": 0,
+                "v": 0.35,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.055,
+                "v": 1.2,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.17,
+                "v": 1.6,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              }
+            ]
+          },
+          "rot": 18,
+          "glow": 0.2
+        }
+      },
+      {
+        "id": "lr_throwstoys_green_miss_2",
+        "name": "Fine emerald sparks",
+        "type": "emitter",
+        "blend": "screen",
+        "opacity": 0.9,
+        "em": {
+          "shape": "point",
+          "dir": "omni",
+          "speed": 340,
+          "speedRnd": 0.5,
+          "bursts": [
+            {
+              "t": 0,
+              "n": 34
+            },
+            {
+              "t": 0.07,
+              "n": 9
+            }
+          ],
+          "seed": 127
+        },
+        "pt": {
+          "life": 0.46,
+          "lifeRnd": 0.25,
+          "sprite": {
+            "kind": "shape",
+            "id": "streak",
+            "p": {}
+          },
+          "size": 8,
+          "sizeRnd": 0.6,
+          "sizeOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 1
+              },
+              {
+                "t": 0.4,
+                "v": 0.8
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "opacityOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 1
+              },
+              {
+                "t": 0.5,
+                "v": 0.85
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "grad": {
+            "stops": [
+              {
+                "t": 0,
+                "c": [
+                  211,
+                  255,
+                  126
+                ]
+              },
+              {
+                "t": 0.15,
+                "c": [
+                  107,
+                  255,
+                  39
+                ]
+              },
+              {
+                "t": 0.65,
+                "c": [
+                  29,
+                  199,
+                  69
+                ]
+              },
+              {
+                "t": 1,
+                "c": [
+                  8,
+                  67,
+                  36
+                ]
+              }
+            ]
+          },
+          "alignVel": true,
+          "stretch": 1.35,
+          "gravY": 150,
+          "drag": 3.6,
+          "spin": 0,
+          "turbAmp": 35,
+          "glow": 0.15
+        }
+      },
+      {
+        "id": "lr_throwstoys_green_miss_3",
+        "name": "Curling splash fingers",
+        "type": "emitter",
+        "blend": "normal",
+        "opacity": 0.9,
+        "em": {
+          "shape": "circle",
+          "sx": 9,
+          "sy": 9,
+          "dir": "out",
+          "speed": 280,
+          "speedRnd": 0.5,
+          "bursts": [
+            {
+              "t": 0,
+              "n": 13
+            }
+          ],
+          "seed": 231,
+          "sub": {
+            "on": true,
+            "emit": "both",
+            "rate": 20,
+            "count": 2,
+            "startAt": 0.12,
+            "dir": "back",
+            "spread": 80,
+            "speed": 28,
+            "speedRnd": 0.5,
+            "inherit": 0.15,
+            "maxGen": 1,
+            "budget": 260,
+            "under": true,
+            "pt": {
+              "life": 0.25,
+              "lifeRnd": 0.3,
+              "sprite": {
+                "kind": "shape",
+                "id": "dot",
+                "p": {}
+              },
+              "size": 4,
+              "sizeRnd": 0.6,
+              "sizeOL": {
+                "pts": [
+                  {
+                    "t": 0,
+                    "v": 0.8
+                  },
+                  {
+                    "t": 0.3,
+                    "v": 1
+                  },
+                  {
+                    "t": 1,
+                    "v": 0
+                  }
+                ]
+              },
+              "opacityOL": {
+                "pts": [
+                  {
+                    "t": 0,
+                    "v": 1
+                  },
+                  {
+                    "t": 0.5,
+                    "v": 0.85
+                  },
+                  {
+                    "t": 1,
+                    "v": 0
+                  }
+                ]
+              },
+              "grad": {
+                "stops": [
+                  {
+                    "t": 0,
+                    "c": [
+                      211,
+                      255,
+                      126
+                    ]
+                  },
+                  {
+                    "t": 0.15,
+                    "c": [
+                      107,
+                      255,
+                      39
+                    ]
+                  },
+                  {
+                    "t": 0.65,
+                    "c": [
+                      29,
+                      199,
+                      69
+                    ]
+                  },
+                  {
+                    "t": 1,
+                    "c": [
+                      8,
+                      67,
+                      36
+                    ]
+                  }
+                ]
+              },
+              "gravY": 85,
+              "drag": 2.2,
+              "spin": 0
+            }
+          }
+        },
+        "pt": {
+          "life": 0.39,
+          "lifeRnd": 0.2,
+          "render": "trail",
+          "sprite": {
+            "kind": "shape",
+            "id": "shard",
+            "p": {}
+          },
+          "trailCore": 0.08,
+          "size": 9,
+          "sizeRnd": 0.4,
+          "sizeOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0.7
+              },
+              {
+                "t": 0.3,
+                "v": 1
+              },
+              {
+                "t": 1,
+                "v": 0.1
+              }
+            ]
+          },
+          "sizeOT": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0
+              },
+              {
+                "t": 0.6,
+                "v": 0.15
+              },
+              {
+                "t": 0.9,
+                "v": 1
+              },
+              {
+                "t": 1,
+                "v": 0.2
+              }
+            ]
+          },
+          "opacityOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 1
+              },
+              {
+                "t": 0.5,
+                "v": 0.85
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "grad": {
+            "stops": [
+              {
+                "t": 0,
+                "c": [
+                  211,
+                  255,
+                  126
+                ]
+              },
+              {
+                "t": 0.15,
+                "c": [
+                  107,
+                  255,
+                  39
+                ]
+              },
+              {
+                "t": 0.65,
+                "c": [
+                  29,
+                  199,
+                  69
+                ]
+              },
+              {
+                "t": 1,
+                "c": [
+                  8,
+                  67,
+                  36
+                ]
+              }
+            ]
+          },
+          "gravY": 140,
+          "drag": 3.2,
+          "turbAmp": 90,
+          "turbFreq": 2.2,
+          "spin": 0
+        }
+      },
+      {
+        "id": "lr_throwstoys_green_miss_4",
+        "name": "Expanding emerald rim",
+        "type": "sprite",
+        "blend": "screen",
+        "end": 0.34,
+        "opacity": {
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.3,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.04,
+              "v": 0.8,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.18,
+              "v": 0.4,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.34,
+              "v": 0,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            }
+          ]
+        },
+        "sp": {
+          "sprite": {
+            "kind": "shape",
+            "id": "ring",
+            "p": {
+              "th": 0.045
+            }
+          },
+          "size": 155,
+          "color": [
+            66,
+            255,
+            49
+          ],
+          "scale": {
+            "keys": [
+              {
+                "t": 0,
+                "v": 0.18,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.13,
+                "v": 1,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.34,
+                "v": 1.5,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              }
+            ]
+          },
+          "glow": 0.18
+        }
+      },
+      {
+        "id": "lr_throwstoys_green_miss_5",
+        "name": "Breaking outer droplets",
+        "type": "emitter",
+        "blend": "normal",
+        "opacity": 0.8,
+        "em": {
+          "shape": "ring",
+          "sx": {
+            "keys": [
+              {
+                "t": 0,
+                "v": 12,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.07,
+                "v": 43,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              }
+            ]
+          },
+          "sy": 9,
+          "dir": "out",
+          "speed": 105,
+          "speedRnd": 0.7,
+          "bursts": [
+            {
+              "t": 0.02,
+              "n": 18
+            },
+            {
+              "t": 0.075,
+              "n": 9
+            }
+          ],
+          "seed": 551
+        },
+        "pt": {
+          "life": 0.54,
+          "lifeRnd": 0.25,
+          "sprite": {
+            "kind": "shape",
+            "id": "blob",
+            "p": {}
+          },
+          "size": 13,
+          "sizeRnd": 0.55,
+          "sizeOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0.5
+              },
+              {
+                "t": 0.2,
+                "v": 1
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "opacityOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 1
+              },
+              {
+                "t": 0.5,
+                "v": 0.85
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "grad": {
+            "stops": [
+              {
+                "t": 0,
+                "c": [
+                  211,
+                  255,
+                  126
+                ]
+              },
+              {
+                "t": 0.15,
+                "c": [
+                  107,
+                  255,
+                  39
+                ]
+              },
+              {
+                "t": 0.65,
+                "c": [
+                  29,
+                  199,
+                  69
+                ]
+              },
+              {
+                "t": 1,
+                "c": [
+                  8,
+                  67,
+                  36
+                ]
+              }
+            ]
+          },
+          "gravY": 125,
+          "drag": 3,
+          "spin": 65,
+          "turbAmp": 30
+        }
+      },
+      {
+        "id": "lr_throwstoys_green_miss_6",
+        "name": "Dense toxic splash",
+        "type": "emitter",
+        "blend": "normal",
+        "opacity": 0.75,
+        "em": {
+          "shape": "circle",
+          "sx": 12,
+          "sy": 12,
+          "dir": "omni",
+          "speed": 145,
+          "speedRnd": 0.6,
+          "bursts": [
+            {
+              "t": 0,
+              "n": 12
+            }
+          ],
+          "seed": 673
+        },
+        "pt": {
+          "life": 0.48,
+          "lifeRnd": 0.3,
+          "sprite": {
+            "kind": "shape",
+            "id": "blob",
+            "p": {}
+          },
+          "size": 36,
+          "sizeRnd": 0.5,
+          "sizeOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0.4
+              },
+              {
+                "t": 0.18,
+                "v": 1
+              },
+              {
+                "t": 0.7,
+                "v": 0.85
+              },
+              {
+                "t": 1,
+                "v": 0.1
+              }
+            ]
+          },
+          "opacityOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0.9
+              },
+              {
+                "t": 0.3,
+                "v": 0.7
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "grad": {
+            "stops": [
+              {
+                "t": 0,
+                "c": [
+                  146,
+                  238,
+                  46
+                ]
+              },
+              {
+                "t": 0.3,
+                "c": [
+                  54,
+                  196,
+                  52
+                ]
+              },
+              {
+                "t": 1,
+                "c": [
+                  10,
+                  83,
+                  38
+                ]
+              }
+            ]
+          },
+          "gravY": 90,
+          "drag": 4.1,
+          "spin": 80,
+          "turbAmp": 50
+        }
+      },
+      {
+        "id": "lr_throwstoys_green_miss_7",
+        "name": "Drifting spore haze",
+        "type": "emitter",
+        "blend": "normal",
+        "opacity": 0.55,
+        "em": {
+          "shape": "circle",
+          "sx": 17,
+          "sy": 17,
+          "dir": "omni",
+          "speed": 55,
+          "speedRnd": 0.6,
+          "bursts": [
+            {
+              "t": 0.02,
+              "n": 7
+            }
+          ],
+          "seed": 787
+        },
+        "pt": {
+          "life": 0.72,
+          "lifeRnd": 0.15,
+          "sprite": {
+            "kind": "shape",
+            "id": "smoke",
+            "p": {}
+          },
+          "size": 68,
+          "sizeRnd": 0.4,
+          "sizeOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0.25
+              },
+              {
+                "t": 0.5,
+                "v": 0.8
+              },
+              {
+                "t": 1,
+                "v": 1.1
+              }
+            ]
+          },
+          "opacityOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0
+              },
+              {
+                "t": 0.17,
+                "v": 0.35
+              },
+              {
+                "t": 0.65,
+                "v": 0.15
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "grad": {
+            "stops": [
+              {
+                "t": 0,
+                "c": [
+                  32,
+                  136,
+                  37
+                ]
+              },
+              {
+                "t": 1,
+                "c": [
+                  6,
+                  49,
+                  25
+                ]
+              }
+            ]
+          },
+          "gravY": -22,
+          "drag": 2.5,
+          "turbMode": "curl",
+          "turbAmp": 45,
+          "turbScale": 45,
+          "turbWind": 30,
+          "turbRise": -15,
+          "turbRamp": 0.6,
+          "spin": 35
+        }
+      },
+      {
+        "id": "lr_throwstoys_green_miss_8",
+        "name": "Soft lime afterglow",
+        "type": "sprite",
+        "blend": "screen",
+        "end": 0.4,
+        "opacity": {
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.25,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.045,
+              "v": 0.48,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.18,
+              "v": 0.16,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.4,
+              "v": 0,
+              "i": {
+                "m": "ease"
+              },
+              "o": {
+                "m": "ease"
+              }
+            }
+          ]
+        },
+        "sp": {
+          "sprite": {
+            "kind": "shape",
+            "id": "soft",
+            "p": {}
+          },
+          "size": 175,
+          "color": [
+            65,
+            221,
+            24
+          ],
+          "scale": {
+            "keys": [
+              {
+                "t": 0,
+                "v": 0.3,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.12,
+                "v": 1,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.4,
+                "v": 1.3,
+                "i": {
+                  "m": "ease"
+                },
+                "o": {
+                  "m": "ease"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  "tex": {}
+}

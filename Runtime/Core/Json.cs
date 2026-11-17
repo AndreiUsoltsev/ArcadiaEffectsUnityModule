@@ -24,6 +24,78 @@ namespace InteractiveSoftware.ArcadiaEffects
             return v;
         }
 
+        /// <summary>Записать дерево (то, что вернул <see cref="Parse"/>) обратно в JSON.</summary>
+        public static string Serialize(object value)
+        {
+            var sb = new StringBuilder(256);
+            Write(sb, value);
+            return sb.ToString();
+        }
+
+        private static void Write(StringBuilder sb, object v)
+        {
+            switch (v)
+            {
+                case null: sb.Append("null"); break;
+                case bool b: sb.Append(b ? "true" : "false"); break;
+                case double d:
+                    if (double.IsNaN(d) || double.IsInfinity(d)) sb.Append("null");
+                    else sb.Append(d.ToString("R", CultureInfo.InvariantCulture));
+                    break;
+                case string s: WriteString(sb, s); break;
+                case Dictionary<string, object> o:
+                {
+                    sb.Append('{');
+                    bool first = true;
+                    foreach (var kv in o)
+                    {
+                        if (!first) sb.Append(',');
+                        first = false;
+                        WriteString(sb, kv.Key);
+                        sb.Append(':');
+                        Write(sb, kv.Value);
+                    }
+                    sb.Append('}');
+                    break;
+                }
+                case List<object> l:
+                {
+                    sb.Append('[');
+                    for (int i = 0; i < l.Count; i++)
+                    {
+                        if (i > 0) sb.Append(',');
+                        Write(sb, l[i]);
+                    }
+                    sb.Append(']');
+                    break;
+                }
+                default:
+                    WriteString(sb, v.ToString());
+                    break;
+            }
+        }
+
+        private static void WriteString(StringBuilder sb, string s)
+        {
+            sb.Append('"');
+            foreach (char c in s)
+            {
+                switch (c)
+                {
+                    case '"': sb.Append("\\\""); break;
+                    case '\\': sb.Append("\\\\"); break;
+                    case '\n': sb.Append("\\n"); break;
+                    case '\r': sb.Append("\\r"); break;
+                    case '\t': sb.Append("\\t"); break;
+                    default:
+                        if (c < 0x20) sb.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
+                        else sb.Append(c);
+                        break;
+                }
+            }
+            sb.Append('"');
+        }
+
         private sealed class Parser
         {
             private readonly string _s;

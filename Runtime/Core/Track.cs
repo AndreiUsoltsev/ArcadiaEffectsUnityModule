@@ -45,6 +45,29 @@ namespace InteractiveSoftware.ArcadiaEffects
 
         public bool IsAnimated => _keys != null;
 
+        /// <summary>
+        /// Верхняя оценка значения числового трека за всё время: максимум статики/ключей.
+        /// Изинги с выбросом (cust) учитываются грубо — ручкой сегмента.
+        /// </summary>
+        public double MaxValue()
+        {
+            if (_keys == null) return _color ? 255 : _value;
+            if (_keys.Length == 0) return 0;
+            double m = double.NegativeInfinity;
+            for (int i = 0; i < _keys.Length; i++)
+            {
+                double v = _keys[i].V;
+                if (i + 1 < _keys.Length && (_keys[i].Out == Ease.Cust || _keys[i + 1].In == Ease.Cust))
+                {
+                    double span = _keys[i + 1].V - v;
+                    double h = Math.Max(Math.Max(_keys[i].OutY, _keys[i + 1].InY), 1);
+                    v = Math.Max(v, v + span * h);
+                }
+                if (v > m) m = v;
+            }
+            return m;
+        }
+
         /// <summary>Значение числового трека в момент <paramref name="t"/> (время слоя).</summary>
         public double Eval(double t)
         {

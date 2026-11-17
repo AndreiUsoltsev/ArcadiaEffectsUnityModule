@@ -5,6 +5,7 @@
 //   2 — турбулентное искажение (postfx displace)
 //   3 — пиксель-арт: выборка блока + альфа + цвет (результат — прямая альфа)
 //   4 — пиксель-арт: обводка (результат — премультиплицированный)
+//   5 — сетка смещений искажения (шум на GPU)
 Shader "Hidden/ArcadiaEffects/Post"
 {
     Properties
@@ -116,10 +117,13 @@ Shader "Hidden/ArcadiaEffects/Post"
             sampler2D _Grid;
             float4 _Grid_TexelSize;
             float _GridStep;
+            float _GridFlip; // 1 — сетка отрисована проходом 5 (строки сверху вниз), 0 — залита с CPU
 
             float2 GridAt(int gx, int gy)
             {
-                float2 uv = float2((gx + 0.5) * _Grid_TexelSize.x, (gy + 0.5) * _Grid_TexelSize.y);
+                float v = (gy + 0.5) * _Grid_TexelSize.y;
+                if (_GridFlip > 0.5) v = 1.0 - v;
+                float2 uv = float2((gx + 0.5) * _Grid_TexelSize.x, v);
                 return tex2Dlod(_Grid, float4(uv, 0, 0)).rg;
             }
 
@@ -165,6 +169,7 @@ Shader "Hidden/ArcadiaEffects/Post"
             float _PxColor;     // 0 none, 1 levels, 2 palette, 3 ramp
             float _PxLev, _PxRampN, _PxSat, _PxCon;
             float _PxDither, _PxDitherAmt;
+            float _PxMaxBlock;
             float _PalN;
             float4 _Pal[64];
             float4 _Ramp[32];
@@ -185,9 +190,9 @@ Shader "Hidden/ArcadiaEffects/Post"
                 if (_PxSample < 0.5)
                 {
                     float ba = -1, bl = -1;
-                    [loop] for (int y = y0; y < min(y1, y0 + 96); y++)
+                    [loop] for (int y = y0; y < min(y1, y0 + (int)_PxMaxBlock); y++)
                     {
-                        [loop] for (int x = x0; x < min(x1, x0 + 96); x++)
+                        [loop] for (int x = x0; x < min(x1, x0 + (int)_PxMaxBlock); x++)
                         {
                             float4 c = round(Straight(TexelAt(float2(x, y))) * 255);
                             if (c.a < ba) continue;
@@ -200,9 +205,9 @@ Shader "Hidden/ArcadiaEffects/Post"
                 else if (_PxSample < 1.5)
                 {
                     float4 acc = 0; float n = 0;
-                    [loop] for (int y = y0; y < min(y1, y0 + 96); y++)
+                    [loop] for (int y = y0; y < min(y1, y0 + (int)_PxMaxBlock); y++)
                     {
-                        [loop] for (int x = x0; x < min(x1, x0 + 96); x++) { acc += TexelAt(float2(x, y)); n += 1; }
+                        [loop] for (int x = x0; x < min(x1, x0 + (int)_PxMaxBlock); x++) { acc += TexelAt(float2(x, y)); n += 1; }
                     }
                     s = n > 0 ? round(Straight(acc / n) * 255) : 0;
                 }
@@ -293,6 +298,92 @@ Shader "Hidden/ArcadiaEffects/Post"
                     }
                 }
                 return float4(c.rgb * c.a, c.a);
+            }
+            ENDCG
+        }
+        // 5: сетка смещений искажения (displace) — тот же целочисленный шум, что AFX.turb3 / turbCurl3.
+        // Цель — gw x gh (1 px = 1 узел сетки), RG = смещение в px композиции.
+        Pass
+        {
+            Blend One Zero
+            CGPROGRAM
+            #pragma vertex vert
+            #pragma fragment frag
+            #pragma target 3.5
+            float4 _DA; // шаг сетки, amount, 1/scale, 1/scale/aspect
+            float4 _DB; // ramp, ch/2, y0, soft
+            float4 _DC; // z, октавы, seed, scroll
+            float _DSwirl;
+
+            float Hash2(int i, int j, int seed)
+            {
+                uint h = (asuint(i) * 0x27d4eb2du) ^ (asuint(j) * 0x165667b1u) ^ (asuint(seed) * 0x9e3779b1u);
+                h = (h ^ (h >> 15)) * 0x85ebca6bu;
+                h = (h ^ (h >> 13)) * 0xc2b2ae35u;
+                return (float)(h ^ (h >> 16)) * (1.0 / 4294967296.0);
+            }
+
+            float Noise2(float x, float y, int seed)
+            {
+                float fi = floor(x), fj = floor(y);
+                float fx = x - fi, fy = y - fj;
+                float ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+                int i = (int)fi, j = (int)fj;
+                float a = Hash2(i, j, seed), b = Hash2(i + 1, j, seed);
+                float c = Hash2(i, j + 1, seed), d = Hash2(i + 1, j + 1, seed);
+                return lerp(a + (b - a) * ux, c + (d - c) * ux, uy);
+            }
+
+            float Noise3(float x, float y, float z, int seed)
+            {
+                float fk = floor(z), fz = z - fk, uz = fz * fz * (3 - 2 * fz);
+                int k = (int)fk;
+                return lerp(Noise2(x, y, seed + k * 1013), Noise2(x, y, seed + (k + 1) * 1013), uz);
+            }
+
+            float Turb3(float x, float y, float z, int oct, int seed)
+            {
+                float v = 0, amp = 1, fr = 1, tz = z, norm = 0;
+                [loop] for (int o = 0; o < oct; o++)
+                {
+                    v += amp * abs(Noise3(x * fr, y * fr, tz, seed) * 2 - 1);
+                    norm += amp;
+                    amp *= 0.5; fr *= 2.13; tz *= 2.13; seed += 5387;
+                }
+                return v / norm;
+            }
+
+            float2 TurbCurl3(float x, float y, float z, int oct, int seed)
+            {
+                const float E = 0.4;
+                float vx = 0, vy = 0, amp = 1, fr = 1, tz = z, norm = 0;
+                [loop] for (int o = 0; o < oct; o++)
+                {
+                    float px = x * fr, py = y * fr;
+                    vx += amp * (abs(Noise3(px, py + E, tz, seed) * 2 - 1) - abs(Noise3(px, py - E, tz, seed) * 2 - 1));
+                    vy -= amp * (abs(Noise3(px + E, py, tz, seed) * 2 - 1) - abs(Noise3(px - E, py, tz, seed) * 2 - 1));
+                    norm += amp;
+                    amp *= 0.5; fr *= 2.13; tz *= 2.13; seed += 5387;
+                }
+                float k = norm > 0 ? 1.7 / norm : 0;
+                return float2(vx, vy) * k;
+            }
+
+            float4 frag(v2f i) : SV_Target
+            {
+                float gi = floor(i.cpos.x), gj = floor(i.cpos.y);
+                float gs = _DA.x;
+                float py = gj * gs;
+                float m = _DB.x > 0 ? 1 - _DB.x * saturate((py - _DB.y - _DB.z) / _DB.w) : 1;
+                float a = _DA.y * m;
+                float ny = (py + _DC.w) * _DA.w;
+                float nx = gi * gs * _DA.z;
+                int oct = (int)_DC.y;
+                int seed = (int)_DC.z;
+                float2 v;
+                if (_DSwirl > 0.5) v = TurbCurl3(nx, ny, _DC.x, oct, seed) * a;
+                else v = float2(Turb3(nx, ny, _DC.x, oct, seed) * 2 - 1, Turb3(nx, ny, _DC.x, oct, seed + 91193) * 2 - 1) * a;
+                return float4(v, 0, 0);
             }
             ENDCG
         }

@@ -48,7 +48,8 @@ namespace InteractiveSoftware.ArcadiaEffects
 
     internal enum DrawBlend { Normal, Add, Screen, Multiply, Copy }
 
-    internal enum StencilMode { None, WriteUnion, WriteNonzero, CoverKeep, CoverZero }
+    /// <summary>Состояние глубины/трафарета пакета. DepthStroke — штрихи трейлов (своя глубина на штрих).</summary>
+    internal enum StencilMode { None, WriteUnion, WriteNonzero, CoverKeep, CoverZero, DepthStroke, DepthStrokeEqual }
 
     /// <summary>Кэш материалов: шейдер один, состояние смешивания/трафарета — свойствами материала.</summary>
     internal static class Materials
@@ -106,6 +107,9 @@ namespace InteractiveSoftware.ArcadiaEffects
             m.SetFloat("_StencilPassF", (float)StencilOp.Keep);
             m.SetFloat("_StencilCompB", (float)CompareFunction.Always);
             m.SetFloat("_StencilPassB", (float)StencilOp.Keep);
+            m.SetFloat("_ZTest", (float)CompareFunction.Always);
+            m.SetFloat("_ZWrite", 0);
+            m.SetFloat("_UseDepth", 0);
             switch (st)
             {
                 case StencilMode.WriteUnion:
@@ -118,6 +122,16 @@ namespace InteractiveSoftware.ArcadiaEffects
                     m.SetFloat("_ColorMask", 0);
                     m.SetFloat("_StencilPassF", (float)StencilOp.IncrementWrap);
                     m.SetFloat("_StencilPassB", (float)StencilOp.DecrementWrap);
+                    break;
+                case StencilMode.DepthStroke:
+                    m.SetFloat("_ZTest", (float)CompareFunction.Less);
+                    m.SetFloat("_ZWrite", 1);
+                    m.SetFloat("_UseDepth", 1);
+                    break;
+                case StencilMode.DepthStrokeEqual: // второй проход multiply по уже записанной глубине штриха
+                    m.SetFloat("_ZTest", (float)CompareFunction.LessEqual);
+                    m.SetFloat("_ZWrite", 0);
+                    m.SetFloat("_UseDepth", 1);
                     break;
                 case StencilMode.CoverKeep:
                 case StencilMode.CoverZero:

@@ -7,14 +7,18 @@ namespace InteractiveSoftware.ArcadiaEffects
     /// <summary>
     /// Эффект Arcaidia Effector в uGUI: композиция растягивается на RectTransform
     /// (Set Native Size — размер композиции в пикселях). Работает с Mask и RectMask2D.
+    /// В UI эффект всегда идёт через холст (RenderTexture): у Graphic одна текстура.
     /// </summary>
     [ExecuteAlways]
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CanvasRenderer))]
     [AddComponentMenu("UI/Effects/Arcadia Effect (UI)")]
-    public sealed class ArcadiaEffectGraphic : MaskableGraphic
+    public sealed class ArcadiaEffectGraphic : MaskableGraphic, IArcadiaRenderClient
     {
-        [Tooltip("Файл эффекта из редактора Arcaidia Effector (library/*.json).")]
+        [Tooltip("Импортированный эффект (.afx). Предпочтительный способ.")]
+        [SerializeField] private ArcadiaEffectAsset _asset;
+
+        [Tooltip("Файл эффекта как JSON (library/*.json) — запасной путь.")]
         [SerializeField] private TextAsset _effect;
 
         [SerializeField] private ArcadiaDisplayBlend _blend = ArcadiaDisplayBlend.Normal;
@@ -31,7 +35,20 @@ namespace InteractiveSoftware.ArcadiaEffects
         private string _jsonKey;
         private bool _hidden;
         private int _playFrame = -1;
+        private Texture _shown;
         private static Material _matNormal, _matAdd;
+
+        public ArcadiaEffectAsset Asset
+        {
+            get => _asset;
+            set
+            {
+                if (_asset == value && _jsonOverride == null) return;
+                _asset = value;
+                _jsonOverride = null;
+                Reload();
+            }
+        }
 
         public TextAsset Effect
         {
@@ -63,8 +80,7 @@ namespace InteractiveSoftware.ArcadiaEffects
                 ref Material m = ref _matNormal;
                 if (_blend == ArcadiaDisplayBlend.Additive) m = ref _matAdd;
                 if (m != null) return m;
-                Shader sh = Shader.Find("ArcadiaEffects/DisplayUI");
-                if (sh == null) sh = Resources.Load<Shader>("ArcadiaEffects/ArcadiaDisplayUI");
+                Shader sh = Resources.Load<Shader>("ArcadiaEffects/ArcadiaDisplayUI");
                 if (sh == null) return base.defaultMaterial;
                 m = new Material(sh) { name = "ArcadiaDisplayUI_" + _blend, hideFlags = HideFlags.HideAndDontSave };
                 m.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
@@ -90,7 +106,7 @@ namespace InteractiveSoftware.ArcadiaEffects
             _player.Play(fromTime);
             _playFrame = UnityEngine.Time.frameCount;
             SetHidden(false);
-            _player.Render();
+            _player.Submit(this);
         }
 
         public void Pause() => _player.Pause();
@@ -107,7 +123,7 @@ namespace InteractiveSoftware.ArcadiaEffects
             if (!EnsureLoaded()) return;
             _player.Seek(t);
             SetHidden(false);
-            _player.Render();
+            _player.Submit(this);
         }
 
         /// <summary>Размер RectTransform = размер композиции в пикселях.</summary>
@@ -141,24 +157,27 @@ namespace InteractiveSoftware.ArcadiaEffects
         private bool EnsureLoaded()
         {
             string key;
-            System.Func<string> json;
+            System.Func<ArcadiaEffectData> load;
             if (_jsonOverride != null)
             {
                 string j = _jsonOverride;
                 key = _jsonKey;
-                json = () => j;
+                load = () => ArcadiaEffectData.Get(key, () => j);
+            }
+            else if (_asset != null)
+            {
+                ArcadiaEffectAsset a = _asset;
+                key = ArcadiaEffectData.KeyOf("afx", a);
+                load = () => ArcadiaEffectData.FromAsset(a);
             }
             else if (_effect != null)
             {
                 TextAsset a = _effect;
-                key = "asset:" + a.GetInstanceID();
-                json = () => a.text;
+                key = ArcadiaEffectData.KeyOf("asset", a);
+                load = () => ArcadiaEffectData.Get(key, () => a.text);
             }
             else return false;
-            Texture before = _player.Texture;
-            if (!_player.Load(key, json, _playback)) return false;
-            if (before != _player.Texture) SetMaterialDirty();
-            return true;
+            return _player.Load(key, load, _playback, false);
         }
 
         protected override void OnEnable()
@@ -170,6 +189,7 @@ namespace InteractiveSoftware.ArcadiaEffects
         protected override void OnDisable()
         {
             _player.Unload();
+            _shown = null;
             base.OnDisable();
         }
 
@@ -196,16 +216,31 @@ namespace InteractiveSoftware.ArcadiaEffects
         {
             if (!Application.isPlaying)
             {
-                if (_player.IsStale && EnsureLoaded()) _player.Render();
+                if (_player.IsStale && EnsureLoaded()) SetTime(_previewTime);
                 return;
             }
-            if (_player.IsStale) EnsureLoaded();
-            if (!_player.IsPlaying) return;
-            if (_playFrame == UnityEngine.Time.frameCount) return;
-            float dt = _playback.unscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
-            bool finished = _player.Advance(dt * _playback.speed, _playback.loop);
-            _player.Render();
-            if (finished) Finish();
+            if (_player.IsStale && EnsureLoaded()) _player.Seek(_player.Time);
+            if (_player.Renderer == null) return;
+
+            bool justStarted = _playFrame == UnityEngine.Time.frameCount;
+            if (_player.IsPlaying && !justStarted)
+            {
+                float dt = _playback.unscaledTime ? UnityEngine.Time.unscaledDeltaTime : UnityEngine.Time.deltaTime;
+                if (_player.Advance(dt * _playback.speed, _playback.loop))
+                {
+                    _player.Submit(this);
+                    Finish();
+                    return;
+                }
+            }
+            // размер на экране -> разрешение холста
+            Canvas c = canvas;
+            float scaleFactor = c != null ? c.scaleFactor : 1f;
+            Vector2 size = rectTransform.rect.size * scaleFactor;
+            _player.UpdateResolution(Mathf.Max(Mathf.Abs(size.x), Mathf.Abs(size.y)), _playback.resolutionScale);
+
+            bool visible = !_hidden && !canvasRenderer.cull;
+            if (_player.ShouldRender(visible)) _player.Submit(this);
         }
 
         internal void EditorAdvance(float dt)
@@ -214,7 +249,7 @@ namespace InteractiveSoftware.ArcadiaEffects
             if (!_player.IsPlaying) _player.Play(_player.IsFinished ? 0 : _player.Time);
             _player.Advance(dt * _playback.speed, true);
             SetHidden(false);
-            _player.Render();
+            _player.Submit(this);
         }
 
         internal float PreviewTime
@@ -228,7 +263,7 @@ namespace InteractiveSoftware.ArcadiaEffects
             switch (_playback.onFinish)
             {
                 case ArcadiaFinishAction.Hide:
-                    _player.Renderer?.Clear();
+                    _player.Release();
                     SetHidden(true);
                     break;
                 case ArcadiaFinishAction.Disable:
@@ -239,6 +274,18 @@ namespace InteractiveSoftware.ArcadiaEffects
                     break;
             }
             _onFinished.Invoke();
+        }
+
+        void IArcadiaRenderClient.OnArcadiaRendered(ArcadiaEffectRenderer renderer)
+        {
+            if (this == null || renderer != _player.Renderer) return;
+            // холст берётся из пула и может смениться (другое разрешение) — перепривязать
+            if (_shown != _player.Texture)
+            {
+                _shown = _player.Texture;
+                SetMaterialDirty();
+                SetVerticesDirty();
+            }
         }
 
         private void SetHidden(bool hidden)

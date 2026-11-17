@@ -33,6 +33,9 @@ namespace InteractiveSoftware.ArcadiaEffects
         /// <summary>Компрессия Y: cos(наклона камеры).</summary>
         public double CompK => Math.Cos(Js.Clamp(CameraTilt, 0, 75) * Js.DEG);
 
+        /// <summary>Возможности документа (что дорого рендерить), вычисляются один раз при загрузке.</summary>
+        public EffectFeatures Features { get; private set; } = new EffectFeatures();
+
         /// <summary>Force-слои, действующие на эмиттер; null — полей нет.</summary>
         public List<Layer> ForcesFor(string emitterId) =>
             emitterId != null && ForceIndex.TryGetValue(emitterId, out var list) ? list : null;
@@ -59,6 +62,7 @@ namespace InteractiveSoftware.ArcadiaEffects
                     if (kv.Value is string s) doc.TexturePayloads[kv.Key] = s;
             }
             doc.BuildForceIndex();
+            doc.Features = EffectFeatures.Of(doc);
             return doc;
         }
 
@@ -142,6 +146,33 @@ namespace InteractiveSoftware.ArcadiaEffects
         }
 
         private static double Or(double v, double d) => v != 0 && !double.IsNaN(v) ? v : d;
+    }
+
+    /// <summary>Что встречается в документе — от этого зависит, какие ресурсы нужны рендеру.</summary>
+    public sealed class EffectFeatures
+    {
+        public bool HasTrails, HasLayerGlow, HasFade, HasPostFx, HasGroups, HasDisplace, HasMotionBlur, HasPixelate;
+
+        internal static EffectFeatures Of(EffectDocument doc)
+        {
+            var f = new EffectFeatures();
+            foreach (var l in doc.Layers)
+            {
+                if (!l.On) continue;
+                if (l.HasTrails) f.HasTrails = true;
+                if (l.Type != LayerType.PostFx && l.Type != LayerType.Force && l.MayGlow) f.HasLayerGlow = true;
+                if (l.FadeOn && l.Type != LayerType.PostFx && l.Type != LayerType.Force) f.HasFade = true;
+                if (l.Type == LayerType.PostFx && l.Fx != null)
+                {
+                    f.HasPostFx = true;
+                    if (l.HasTargets) f.HasGroups = true;
+                    if (l.Fx.Effect == PostEffect.Displace) f.HasDisplace = true;
+                    if (l.Fx.Effect == PostEffect.MotionBlur) f.HasMotionBlur = true;
+                    if (l.Fx.Effect == PostEffect.Pixelate) f.HasPixelate = true;
+                }
+            }
+            return f;
+        }
     }
 
     public struct PixelGrid
@@ -308,6 +339,32 @@ namespace InteractiveSoftware.ArcadiaEffects
         }
 
         public bool HasTargets => Targets.Length > 0;
+
+        /// <summary>У слоя есть трейлы (своя частица или частица суб-эмиттера).</summary>
+        public bool HasTrails => Type == LayerType.Emitter && (Pt.Trail || (Em.Sub.On && Em.Sub.Pt.Trail));
+
+        /// <summary>Свечение слоя может быть включено хоть в какой-то момент.</summary>
+        public bool MayGlow => GlowL.MaxValue() > 0.01;
+
+        /// <summary>
+        /// Слой можно рисовать прямо в сцену, без холста композиции: он сам по себе ничего не
+        /// требует от оффскрина (нет свечения слоя, затухания, наложения screen/multiply).
+        /// Трейлы — только если разрешены простые полосы без трафарета.
+        /// </summary>
+        public bool CanDrawDirect(bool trailsWithoutStencil)
+        {
+            switch (Type)
+            {
+                case LayerType.Force:
+                    return true;
+                case LayerType.PostFx:
+                    return false;
+            }
+            if (Blend != LayerBlend.Normal && Blend != LayerBlend.Add) return false;
+            if (FadeOn || MayGlow) return false;
+            if (HasTrails && !trailsWithoutStencil) return false;
+            return true;
+        }
     }
 
     public enum EmitterShape { Point, Circle, Ring, Box, Line }

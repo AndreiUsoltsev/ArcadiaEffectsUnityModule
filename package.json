@@ -1,6 +1,6 @@
 {
   "name": "com.interactivesoftware.arcadiaeffects",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "displayName": "Arcadia Effects",
   "description": "Plays Arcaidia Effector effects (library/*.json) in Unity: the same deterministic particle simulation and Canvas2D-style rendering as the editor, without frame-by-frame atlases",
   "unity": "2022.3",

@@ -39,7 +39,7 @@ namespace InteractiveSoftware.ArcadiaEffects
         // ---------- детерминированный rng ----------
 
         /// <summary>mulberry32 — тот же поток чисел, что <c>AFX.mulberry32</c>.</summary>
-        public sealed class Mulberry32
+        public struct Mulberry32
         {
             private int _a;
 

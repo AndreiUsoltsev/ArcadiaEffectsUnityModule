@@ -1,0 +1,530 @@
+{
+  "app": "arcadia-effects",
+  "v": 1,
+  "doc": {
+    "id": "fx_festival_firework",
+    "name": "Festival Firework",
+    "comp": {
+      "w": 512,
+      "h": 512,
+      "dur": 2.2,
+      "fps": 60
+    },
+    "cam": {
+      "comp": 0
+    },
+    "exp": {
+      "cols": 8,
+      "rows": 8,
+      "frames": 64,
+      "cellW": 256,
+      "cellH": 256,
+      "t0": 0,
+      "t1": -1,
+      "mode": "black",
+      "ss": 2
+    },
+    "layers": [
+      {
+        "id": "lr_festival_firework_1",
+        "type": "emitter",
+        "name": "Glitter",
+        "start": 0.12,
+        "end": 0.4,
+        "blend": "add",
+        "glowL": 0.35,
+        "glowLR": 14,
+        "em": {
+          "shape": "circle",
+          "sx": 18,
+          "sy": 18,
+          "dir": "omni",
+          "speed": 330,
+          "speedRnd": 0.55,
+          "rate": 0,
+          "bursts": [
+            {
+              "t": 0,
+              "n": 46
+            }
+          ],
+          "seed": 11,
+          "sub": {
+            "on": true,
+            "emit": "death",
+            "count": 3,
+            "dir": "omni",
+            "speed": 40,
+            "speedRnd": 0.7,
+            "inherit": 0.1,
+            "budget": 900,
+            "pt": {
+              "life": 0.5,
+              "lifeRnd": 0.5,
+              "size": 9,
+              "sizeRnd": 0.5,
+              "sprite": {
+                "kind": "shape",
+                "id": "star",
+                "p": {
+                  "n": 4,
+                  "inr": 0.3
+                }
+              },
+              "opacityOL": {
+                "pts": [
+                  {
+                    "t": 0,
+                    "v": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "v": 1
+                  },
+                  {
+                    "t": 0.5,
+                    "v": 0.55
+                  },
+                  {
+                    "t": 1,
+                    "v": 0
+                  }
+                ]
+              },
+              "sizeOL": {
+                "pts": [
+                  {
+                    "t": 0,
+                    "v": 0.5
+                  },
+                  {
+                    "t": 0.2,
+                    "v": 1
+                  },
+                  {
+                    "t": 1,
+                    "v": 0.2
+                  }
+                ]
+              },
+              "grad": {
+                "stops": [
+                  {
+                    "t": 0,
+                    "c": [
+                      255,
+                      255,
+                      255
+                    ]
+                  },
+                  {
+                    "t": 1,
+                    "c": [
+                      255,
+                      230,
+                      170
+                    ]
+                  }
+                ]
+              },
+              "gravY": 40,
+              "drag": 2,
+              "glow": 0.6
+            }
+          }
+        },
+        "pt": {
+          "life": 1.4,
+          "lifeRnd": 0.35,
+          "sprite": {
+            "kind": "shape",
+            "id": "spark",
+            "p": {}
+          },
+          "size": 16,
+          "sizeRnd": 0.5,
+          "sizeOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0.7
+              },
+              {
+                "t": 0.3,
+                "v": 1
+              },
+              {
+                "t": 1,
+                "v": 0.15
+              }
+            ]
+          },
+          "opacityOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 1
+              },
+              {
+                "t": 0.55,
+                "v": 0.85
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "grad": {
+            "stops": [
+              {
+                "t": 0,
+                "c": [
+                  255,
+                  255,
+                  255
+                ]
+              },
+              {
+                "t": 0.5,
+                "c": [
+                  255,
+                  244,
+                  210
+                ]
+              },
+              {
+                "t": 1,
+                "c": [
+                  255,
+                  220,
+                  160
+                ]
+              }
+            ]
+          },
+          "rotRnd": 1,
+          "spin": 220,
+          "spinRnd": 1,
+          "gravY": 190,
+          "drag": 1.6,
+          "glow": 0.5,
+          "glowSize": 1.9,
+          "glowBlur": 0.3
+        }
+      },
+      {
+        "id": "lr_festival_firework_2",
+        "type": "emitter",
+        "name": "Peony Shell",
+        "start": 0,
+        "end": 0.2,
+        "blend": "add",
+        "glowL": 0.45,
+        "glowLR": 22,
+        "em": {
+          "shape": "point",
+          "dir": "omni",
+          "speed": 470,
+          "speedRnd": 0.12,
+          "rate": 0,
+          "bursts": [
+            {
+              "t": 0,
+              "n": 72
+            }
+          ],
+          "seed": 5,
+          "sub": {
+            "on": true,
+            "emit": "both",
+            "rate": 14,
+            "count": 2,
+            "startAt": 0.05,
+            "dir": "back",
+            "spread": 28,
+            "speed": 55,
+            "speedRnd": 0.6,
+            "inherit": 0.05,
+            "budget": 3600,
+            "pt": {
+              "life": 0.55,
+              "lifeRnd": 0.45,
+              "size": 5,
+              "sizeRnd": 0.5,
+              "sprite": {
+                "kind": "shape",
+                "id": "dot",
+                "p": {}
+              },
+              "opacityOL": {
+                "pts": [
+                  {
+                    "t": 0,
+                    "v": 0.55
+                  },
+                  {
+                    "t": 1,
+                    "v": 0
+                  }
+                ]
+              },
+              "sizeOL": {
+                "pts": [
+                  {
+                    "t": 0,
+                    "v": 1
+                  },
+                  {
+                    "t": 1,
+                    "v": 0.1
+                  }
+                ]
+              },
+              "grad": {
+                "stops": [
+                  {
+                    "t": 0,
+                    "c": [
+                      255,
+                      255,
+                      255
+                    ]
+                  },
+                  {
+                    "t": 0.5,
+                    "c": [
+                      255,
+                      235,
+                      190
+                    ]
+                  },
+                  {
+                    "t": 1,
+                    "c": [
+                      255,
+                      190,
+                      130
+                    ]
+                  }
+                ]
+              },
+              "gravY": 120,
+              "drag": 2.2,
+              "glow": 0.3
+            }
+          }
+        },
+        "pt": {
+          "life": 1.55,
+          "lifeRnd": 0.12,
+          "sprite": {
+            "kind": "shape",
+            "id": "ember",
+            "p": {}
+          },
+          "size": 15,
+          "sizeRnd": 0.2,
+          "sizeOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 1
+              },
+              {
+                "t": 0.6,
+                "v": 0.85
+              },
+              {
+                "t": 1,
+                "v": 0.2
+              }
+            ]
+          },
+          "opacityOL": {
+            "pts": [
+              {
+                "t": 0,
+                "v": 0.9
+              },
+              {
+                "t": 0.65,
+                "v": 0.75
+              },
+              {
+                "t": 1,
+                "v": 0
+              }
+            ]
+          },
+          "grad": {
+            "stops": [
+              {
+                "t": 0,
+                "c": [
+                  255,
+                  255,
+                  255
+                ]
+              },
+              {
+                "t": 0.35,
+                "c": [
+                  255,
+                  246,
+                  220
+                ]
+              },
+              {
+                "t": 0.75,
+                "c": [
+                  255,
+                  225,
+                  170
+                ]
+              },
+              {
+                "t": 1,
+                "c": [
+                  255,
+                  190,
+                  130
+                ]
+              }
+            ]
+          },
+          "rotRnd": 1,
+          "spin": 0,
+          "gravY": 230,
+          "drag": 2.5,
+          "glow": 0.45,
+          "glowSize": 1.7,
+          "glowBlur": 0.3
+        }
+      },
+      {
+        "id": "lr_festival_firework_3",
+        "type": "sprite",
+        "name": "Shock Ring",
+        "start": 0,
+        "end": 0.55,
+        "blend": "add",
+        "opacity": {
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.6,
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.5,
+              "v": 0,
+              "i": {
+                "m": "ease"
+              }
+            }
+          ]
+        },
+        "sp": {
+          "sprite": {
+            "kind": "shape",
+            "id": "ring",
+            "p": {
+              "th": 0.06
+            }
+          },
+          "size": 300,
+          "scale": {
+            "keys": [
+              {
+                "t": 0,
+                "v": 0.15,
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.5,
+                "v": 1.7,
+                "i": {
+                  "m": "ease"
+                }
+              }
+            ]
+          },
+          "color": [
+            255,
+            240,
+            200
+          ],
+          "glow": 0.3
+        }
+      },
+      {
+        "id": "lr_festival_firework_4",
+        "type": "sprite",
+        "name": "Core Flash",
+        "start": 0,
+        "end": 0.3,
+        "blend": "add",
+        "opacity": {
+          "keys": [
+            {
+              "t": 0,
+              "v": 0.9,
+              "o": {
+                "m": "ease"
+              }
+            },
+            {
+              "t": 0.25,
+              "v": 0,
+              "i": {
+                "m": "ease"
+              }
+            }
+          ]
+        },
+        "sp": {
+          "sprite": {
+            "kind": "shape",
+            "id": "soft",
+            "p": {}
+          },
+          "size": 260,
+          "scale": {
+            "keys": [
+              {
+                "t": 0,
+                "v": 0.15,
+                "o": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.1,
+                "v": 0.9,
+                "i": {
+                  "m": "ease"
+                }
+              },
+              {
+                "t": 0.25,
+                "v": 1.2
+              }
+            ]
+          },
+          "color": [
+            255,
+            250,
+            235
+          ],
+          "glow": 0
+        }
+      }
+    ]
+  },
+  "tex": {}
+}

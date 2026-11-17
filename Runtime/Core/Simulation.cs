@@ -9,8 +9,20 @@ namespace InteractiveSoftware.ArcadiaEffects
         public double X, Y, Vx, Vy, Age, Life, Size0, Rot, Spin, Seed;
         public int Vi, Gen, StepN, Tier, PSeg;
         public double SubAcc;
+        internal bool Dead;
+        internal bool HasHist;
+        private readonly List<double> _hist = new List<double>(16);
+
         /// <summary>История пути трейла: x,y подряд; null — частица не трейл.</summary>
-        public List<double> Hist;
+        public List<double> Hist => HasHist ? _hist : null;
+
+        internal void StartHist(double x, double y)
+        {
+            _hist.Clear();
+            _hist.Add(x);
+            _hist.Add(y);
+            HasHist = true;
+        }
     }
 
     /// <summary>
@@ -32,6 +44,9 @@ namespace InteractiveSoftware.ArcadiaEffects
         public readonly List<Particle> Parts = new List<Particle>();
 
         private Js.Mulberry32 _rng;
+        private readonly int _maxParts;
+        private int _live;
+        private readonly Stack<Particle> _free = new Stack<Particle>();
         private double _acc;
         private int _bi;
         private int _subN;
@@ -42,11 +57,22 @@ namespace InteractiveSoftware.ArcadiaEffects
         private int _pathIdx;
         private readonly List<double> _fbuf = new List<double>();
 
-        public Simulation(Layer layer, List<Layer> forces)
+        /// <param name="maxParticles">Кап живых частиц (в редакторе 5000; меньше — только на слабых уровнях качества).</param>
+        public Simulation(Layer layer, List<Layer> forces, int maxParticles = MaxParts)
         {
             _layer = layer;
             _forces = forces;
+            _maxParts = Math.Max(1, maxParticles);
             Reset();
+        }
+
+        private Particle Rent()
+        {
+            Particle p = _free.Count > 0 ? _free.Pop() : new Particle();
+            p.Dead = false;
+            p.HasHist = false;
+            _live++;
+            return p;
         }
 
         public void Reset()
@@ -55,7 +81,9 @@ namespace InteractiveSoftware.ArcadiaEffects
             _rng = new Js.Mulberry32(Js.ToInt32((double)Js.ToInt32(_layer.Em.Seed) * 7919 + 1013));
             _acc = 0;
             _bi = 0;
+            for (int i = 0; i < Parts.Count; i++) _free.Push(Parts[i]);
             Parts.Clear();
+            _live = 0;
             _subN = 0;
             _pe = null;
             _pe2 = null;
@@ -180,7 +208,6 @@ namespace InteractiveSoftware.ArcadiaEffects
         {
             EmitterSettings em = _layer.Em;
             ParticleSettings pt = _layer.Pt;
-            Js.Mulberry32 r = _rng;
             double ex = em.X.Eval(tl), ey = em.Y.Eval(tl);
             double sx = Math.Max(0, em.Sx.Eval(tl)), sy = Math.Max(0, em.Sy.Eval(tl));
             double angle = em.Angle.Eval(tl) * Js.DEG;
@@ -199,14 +226,14 @@ namespace InteractiveSoftware.ArcadiaEffects
 
             for (int i = 0; i < n; i++)
             {
-                if (Parts.Count >= MaxParts) return;
+                if (_live >= _maxParts) return;
                 double f = sInc > 0 ? Js.Clamp((i + 1 - sA0) / sInc, 0, 1) : 0;
                 double cex = ex + (ex2 - ex) * f, cey = ey + (ey2 - ey) * f;
                 double x = cex, y = cey;
                 double ptx = 1, pty = 0, side = 1;
                 if (pb != null)
                 {
-                    double ru = r.Next(), rj = r.Next() * 2 - 1;
+                    double ru = _rng.Next(), rj = _rng.Next() * 2 - 1;
                     double u = pAlong == PathAlong.Even ? (_pathIdx * Phi) % 1 : (pAlong == PathAlong.Start ? 0 : ru);
                     _pathIdx++;
                     PathBake.At q = pb.PointAt(u);
@@ -227,61 +254,60 @@ namespace InteractiveSoftware.ArcadiaEffects
                 }
                 else if (em.Shape == EmitterShape.Circle)
                 {
-                    double a = r.Next() * Math.PI * 2, d = Math.Sqrt(r.Next());
+                    double a = _rng.Next() * Math.PI * 2, d = Math.Sqrt(_rng.Next());
                     x = cex + Math.Cos(a) * d * sx;
                     y = cey + Math.Sin(a) * d * sy;
                 }
                 else if (em.Shape == EmitterShape.Ring)
                 {
-                    double a = r.Next() * Math.PI * 2, d = sx + (r.Next() - 0.5) * sy;
+                    double a = _rng.Next() * Math.PI * 2, d = sx + (_rng.Next() - 0.5) * sy;
                     x = cex + Math.Cos(a) * d;
                     y = cey + Math.Sin(a) * d;
                 }
                 else if (em.Shape == EmitterShape.Box)
                 {
-                    x = cex + (r.Next() * 2 - 1) * sx;
-                    y = cey + (r.Next() * 2 - 1) * sy;
+                    x = cex + (_rng.Next() * 2 - 1) * sx;
+                    y = cey + (_rng.Next() * 2 - 1) * sy;
                 }
                 else if (em.Shape == EmitterShape.Line)
                 {
-                    double d = (r.Next() * 2 - 1) * sx;
+                    double d = (_rng.Next() * 2 - 1) * sx;
                     x = cex + Math.Cos(angle) * d;
                     y = cey + Math.Sin(angle) * d;
                 }
 
                 double ang;
-                if (pAim == PathAim.Tangent) ang = Math.Atan2(pty, ptx) + (r.Next() - 0.5) * spread;
-                else if (pAim == PathAim.Normal) ang = Math.Atan2(ptx * side, -pty * side) + (r.Next() - 0.5) * spread;
-                else if (em.Dir == EmitDir.Dir) ang = angle + (r.Next() - 0.5) * spread;
-                else if (em.Dir == EmitDir.Omni) ang = r.Next() * Math.PI * 2;
+                if (pAim == PathAim.Tangent) ang = Math.Atan2(pty, ptx) + (_rng.Next() - 0.5) * spread;
+                else if (pAim == PathAim.Normal) ang = Math.Atan2(ptx * side, -pty * side) + (_rng.Next() - 0.5) * spread;
+                else if (em.Dir == EmitDir.Dir) ang = angle + (_rng.Next() - 0.5) * spread;
+                else if (em.Dir == EmitDir.Omni) ang = _rng.Next() * Math.PI * 2;
                 else
                 {
                     double dx = x - cex, dy = y - cey;
-                    ang = (dx * dx + dy * dy > 1e-6) ? Math.Atan2(dy, dx) : r.Next() * Math.PI * 2;
+                    ang = (dx * dx + dy * dy > 1e-6) ? Math.Atan2(dy, dx) : _rng.Next() * Math.PI * 2;
                     if (em.Dir == EmitDir.In) ang += Math.PI;
                 }
-                double spd = Math.Max(0, baseSpeed * (1 + em.SpeedRnd * (r.Next() * 2 - 1)));
-                double life = Math.Max(0.05, pt.Life * (1 + pt.LifeRnd * (r.Next() * 2 - 1)));
-                double size0 = Math.Max(1, baseSize * (1 + pt.SizeRnd * (r.Next() * 2 - 1)));
-                double rot0 = (pt.Rot + 360 * pt.RotRnd * (r.Next() - 0.5)) * Js.DEG;
-                double spin = pt.Spin * (1 + pt.SpinRnd * (r.Next() * 2 - 1)) * Js.DEG;
-                double seed = Math.Floor(r.Next() * 1e6);
-                int varI = (int)Math.Floor(r.Next() * nVar);
+                double spd = Math.Max(0, baseSpeed * (1 + em.SpeedRnd * (_rng.Next() * 2 - 1)));
+                double life = Math.Max(0.05, pt.Life * (1 + pt.LifeRnd * (_rng.Next() * 2 - 1)));
+                double size0 = Math.Max(1, baseSize * (1 + pt.SizeRnd * (_rng.Next() * 2 - 1)));
+                double rot0 = (pt.Rot + 360 * pt.RotRnd * (_rng.Next() - 0.5)) * Js.DEG;
+                double spin = pt.Spin * (1 + pt.SpinRnd * (_rng.Next() * 2 - 1)) * Js.DEG;
+                double seed = Math.Floor(_rng.Next() * 1e6);
+                int varI = (int)Math.Floor(_rng.Next() * nVar);
 
                 double bvx = Math.Cos(ang) * spd, bvy = Math.Sin(ang) * spd;
                 double back = f * DT;
 
-                Parts.Add(new Particle
-                {
-                    X = x - bvx * back, Y = y - bvy * back,
-                    Vx = bvx - sgx * back, Vy = bvy - sgy * back,
-                    Age = -back, Life = life,
-                    Size0 = size0, Rot = rot0 - spin * back, Spin = spin,
-                    Seed = seed, Vi = varI,
-                    Gen = 0, StepN = 0,
-                    Tier = 0, SubAcc = 0, PSeg = -1,
-                    Hist = pt.Trail ? new List<double> { x, y } : null
-                });
+                Particle np = Rent();
+                np.X = x - bvx * back; np.Y = y - bvy * back;
+                np.Vx = bvx - sgx * back; np.Vy = bvy - sgy * back;
+                np.Age = -back; np.Life = life;
+                np.Size0 = size0; np.Rot = rot0 - spin * back; np.Spin = spin;
+                np.Seed = seed; np.Vi = varI;
+                np.Gen = 0; np.StepN = 0;
+                np.Tier = 0; np.SubAcc = 0; np.PSeg = -1;
+                if (pt.Trail) np.StartHist(x, y);
+                Parts.Add(np);
             }
         }
 
@@ -293,7 +319,7 @@ namespace InteractiveSoftware.ArcadiaEffects
             double gs = tier < sc.GenScale.Length && sc.GenScale[tier] != 0 ? sc.GenScale[tier] : 1;
             for (int i = 0; i < n; i++)
             {
-                if (Parts.Count >= MaxParts || _subN >= sc.Budget) return;
+                if (_live >= _maxParts || _subN >= sc.Budget) return;
                 var cr = new Js.Mulberry32(Js.ToInt32((double)Js.ToInt32(p.Seed) * 65599 + (double)p.StepN * 40503 + (double)i * 8191 + salt));
                 double rA = cr.Next(), rS = cr.Next(), rL = cr.Next(), rZ = cr.Next(), rR = cr.Next(), rP = cr.Next(), rV = cr.Next(), rD = cr.Next();
 
@@ -321,27 +347,26 @@ namespace InteractiveSoftware.ArcadiaEffects
                 double inh = sub.Inherit;
 
                 _subN++;
-                Parts.Add(new Particle
-                {
-                    X = p.X, Y = p.Y,
-                    Vx = Math.Cos(ang) * spd + p.Vx * inh,
-                    Vy = Math.Sin(ang) * spd + p.Vy * inh,
-                    Age = 0,
-                    Life = Math.Max(0.05, spt.Life * gs * (1 + spt.LifeRnd * (rL * 2 - 1))),
-                    Size0 = Math.Max(1, sc.Size * gs * (1 + spt.SizeRnd * (rZ * 2 - 1))),
-                    Rot = (spt.Rot + 360 * spt.RotRnd * (rR - 0.5)) * Js.DEG,
-                    Spin = spt.Spin * (1 + spt.SpinRnd * (rP * 2 - 1)) * Js.DEG,
-                    Seed = Math.Floor(rD * 1e6), Vi = (int)Math.Floor(rV * sc.NVar),
-                    Gen = 0, StepN = 0,
-                    Tier = tier, SubAcc = 0, PSeg = -1,
-                    Hist = sc.Trail ? new List<double> { p.X, p.Y } : null
-                });
+                Particle np = Rent();
+                np.X = p.X; np.Y = p.Y;
+                np.Vx = Math.Cos(ang) * spd + p.Vx * inh;
+                np.Vy = Math.Sin(ang) * spd + p.Vy * inh;
+                np.Age = 0;
+                np.Life = Math.Max(0.05, spt.Life * gs * (1 + spt.LifeRnd * (rL * 2 - 1)));
+                np.Size0 = Math.Max(1, sc.Size * gs * (1 + spt.SizeRnd * (rZ * 2 - 1)));
+                np.Rot = (spt.Rot + 360 * spt.RotRnd * (rR - 0.5)) * Js.DEG;
+                np.Spin = spt.Spin * (1 + spt.SpinRnd * (rP * 2 - 1)) * Js.DEG;
+                np.Seed = Math.Floor(rD * 1e6); np.Vi = (int)Math.Floor(rV * sc.NVar);
+                np.Gen = 0; np.StepN = 0;
+                np.Tier = tier; np.SubAcc = 0; np.PSeg = -1;
+                if (sc.Trail) np.StartHist(p.X, p.Y);
+                Parts.Add(np);
             }
         }
 
         private void SpawnBranch(Particle p)
         {
-            if (Parts.Count >= MaxParts) return;
+            if (_live >= _maxParts) return;
             ParticleSettings pt = PtOf(p.Tier);
             EmitterSettings em = _layer.Em;
             var cr = new Js.Mulberry32(Js.ToInt32((double)Js.ToInt32(p.Seed) * 31 + (double)p.StepN * 10007));
@@ -349,18 +374,18 @@ namespace InteractiveSoftware.ArcadiaEffects
             double spd = Hypot(p.Vx, p.Vy) * Or(em.BranchSpeedScale, 1) * (0.75 + 0.5 * cr.Next());
             double remain = Math.Max(0.05, p.Life - p.Age);
             double life = Math.Max(0.05, remain * Or(em.BranchLifeScale, 0.6) * (0.6 + 0.8 * cr.Next()));
-            Parts.Add(new Particle
-            {
-                X = p.X, Y = p.Y,
-                Vx = Math.Cos(ang) * spd, Vy = Math.Sin(ang) * spd,
-                Age = 0, Life = life,
-                Size0 = Math.Max(1, p.Size0 * Or(em.BranchSizeScale, 0.7)),
-                Rot = p.Rot, Spin = p.Spin,
-                Seed = Math.Floor(cr.Next() * 1e6), Vi = p.Vi,
-                Gen = p.Gen + 1, StepN = 0,
-                Tier = p.Tier, SubAcc = 0, PSeg = p.PSeg,
-                Hist = pt.Trail ? new List<double> { p.X, p.Y } : null
-            });
+            double nSeed = Math.Floor(cr.Next() * 1e6);
+            Particle np = Rent();
+            np.X = p.X; np.Y = p.Y;
+            np.Vx = Math.Cos(ang) * spd; np.Vy = Math.Sin(ang) * spd;
+            np.Age = 0; np.Life = life;
+            np.Size0 = Math.Max(1, p.Size0 * Or(em.BranchSizeScale, 0.7));
+            np.Rot = p.Rot; np.Spin = p.Spin;
+            np.Seed = nSeed; np.Vi = p.Vi;
+            np.Gen = p.Gen + 1; np.StepN = 0;
+            np.Tier = p.Tier; np.SubAcc = 0; np.PSeg = p.PSeg;
+            if (pt.Trail) np.StartHist(p.X, p.Y);
+            Parts.Add(np);
             if (p.Tier > 0) _subN++;
         }
 
@@ -448,6 +473,7 @@ namespace InteractiveSoftware.ArcadiaEffects
             bool brOn = em.BranchChance > 0;
             double maxGenD = Math.Max(1, Or(em.BranchMaxGen, 2));
             List<Particle> parts = Parts;
+            bool anyDead = false;
             for (int i = parts.Count - 1; i >= 0; i--)
             {
                 Particle p = parts[i];
@@ -458,7 +484,9 @@ namespace InteractiveSoftware.ArcadiaEffects
                 {
                     if (sc != null && sc.EmitDeath && p.Tier < sc.MaxGen) SpawnSub(p, sc.Count, 20001, sc);
                     if (p.Tier > 0) _subN--;
-                    parts.RemoveAt(i);
+                    p.Dead = true;
+                    _live--;
+                    anyDead = true;
                     continue;
                 }
                 if (sc != null && sc.EmitLife && p.Tier < sc.MaxGen && p.Age >= p.Life * sc.StartAt)
@@ -574,14 +602,27 @@ namespace InteractiveSoftware.ArcadiaEffects
                 p.Rot += p.Spin * DT;
                 if (ph.Trail)
                 {
-                    if (p.Hist == null) p.Hist = new List<double> { p.X, p.Y };
+                    if (!p.HasHist) p.StartHist(p.X, p.Y);
                     else if ((p.StepN & 1) == 0)
                     {
-                        p.Hist.Add(p.X);
-                        p.Hist.Add(p.Y);
-                        if (p.Hist.Count > 480) p.Hist.RemoveRange(0, 2);
+                        List<double> h = p.Hist;
+                        h.Add(p.X);
+                        h.Add(p.Y);
+                        if (h.Count > 480) h.RemoveRange(0, 2);
                     }
                 }
+            }
+            // уплотнение с сохранением порядка — ровно то, что дал бы splice в цикле
+            if (anyDead)
+            {
+                int w = 0;
+                for (int r = 0; r < parts.Count; r++)
+                {
+                    Particle q = parts[r];
+                    if (q.Dead) { _free.Push(q); continue; }
+                    parts[w++] = q;
+                }
+                parts.RemoveRange(w, parts.Count - w);
             }
             T += DT;
         }

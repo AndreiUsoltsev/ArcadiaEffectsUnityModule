@@ -1,7 +1,7 @@
 // Arcadia Effects: отрисовка спрайтов/частиц/лент в RenderTexture композиции.
 // Координаты вершин — пиксели композиции (Y вниз), проекция — _AfxProj.
 // Цвет на выходе ПРЕМУЛЬТИПЛИЦИРОВАННЫЙ (как в Canvas2D), режим наложения задаётся
-// свойствами материала (_SrcC/_DstC/_SrcA/_DstA), трафарет — для лент трейлов.
+// свойствами материала (_SrcC/_DstC/_SrcA/_DstA); штрихи трейлов — через буфер глубины.
 Shader "Hidden/ArcadiaEffects/Draw"
 {
     Properties
@@ -17,13 +17,16 @@ Shader "Hidden/ArcadiaEffects/Draw"
         _StencilPassF ("Stencil Pass Front", Float) = 0
         _StencilCompB ("Stencil Comp Back", Float) = 8
         _StencilPassB ("Stencil Pass Back", Float) = 0
+        _ZTest ("ZTest", Float) = 8
+        _ZWrite ("ZWrite", Float) = 0
+        _UseDepth ("Use Depth", Float) = 0
     }
     SubShader
     {
         Tags { "RenderType"="Transparent" "Queue"="Transparent" }
         Cull Off
-        ZWrite Off
-        ZTest Always
+        ZWrite [_ZWrite]
+        ZTest [_ZTest]
         Blend [_SrcC] [_DstC], [_SrcA] [_DstA]
         ColorMask [_ColorMask]
         Stencil
@@ -46,6 +49,7 @@ Shader "Hidden/ArcadiaEffects/Draw"
 
             sampler2D _MainTex;
             float4x4 _AfxProj;
+            float _UseDepth;
 
             struct appdata
             {
@@ -66,6 +70,19 @@ Shader "Hidden/ArcadiaEffects/Draw"
                 v2f o;
                 float4 w = mul(unity_ObjectToWorld, float4(v.vertex.xy, 0, 1));
                 o.pos = mul(_AfxProj, float4(w.xy, 0, 1));
+                if (_UseDepth > 0.5)
+                {
+                    // ШТРИХИ ТРЕЙЛОВ: у каждого штриха своя глубина (vertex.z: 1 — дальше, меньше — ближе).
+                    // ZTest Less + ZWrite: пиксель одного штриха закрашивается один раз (как контур
+                    // Canvas2D), а следующий штрих — ближе и проходит. Unity сам переворачивает
+                    // сравнение на платформах с обратным Z, поэтому глубину пишем «как есть».
+                    float d = saturate(v.vertex.z);
+                    #if UNITY_REVERSED_Z
+                    o.pos.z = (1.0 - d) * o.pos.w;
+                    #else
+                    o.pos.z = lerp(UNITY_NEAR_CLIP_VALUE, 1.0, d) * o.pos.w;
+                    #endif
+                }
                 o.uv = v.uv;
                 o.color = v.color;
                 return o;

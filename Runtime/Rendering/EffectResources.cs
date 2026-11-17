@@ -33,6 +33,8 @@ namespace InteractiveSoftware.ArcadiaEffects
     {
         public EffectDocument Document { get; }
         private readonly Dictionary<string, EffectTexture> _textures = new Dictionary<string, EffectTexture>();
+        private readonly Dictionary<string, ShapeAtlas.Sheet> _sheets = new Dictionary<string, ShapeAtlas.Sheet>();
+        private readonly bool _ownsTextures = true;
 
         private static readonly Dictionary<string, ArcadiaEffectData> Cache = new Dictionary<string, ArcadiaEffectData>();
 
@@ -49,8 +51,43 @@ namespace InteractiveSoftware.ArcadiaEffects
             doc.TexturePayloads.Clear();
         }
 
+        /// <summary>Из импортированного ассета: текстуры и атласы фигур уже готовы, декодировать нечего.</summary>
+        private ArcadiaEffectData(ArcadiaEffectAsset asset)
+        {
+            _ownsTextures = false;
+            Document = EffectDocument.Parse(asset.DocumentJson);
+            foreach (var e in asset.Textures)
+            {
+                if (e == null || e.texture == null) continue;
+                TextureInfo info = Document.FindTexture(e.id);
+                if (info != null) _textures[e.id] = new EffectTexture { Texture = e.texture, Info = info };
+            }
+            foreach (var sh in asset.ShapeSheets)
+                if (sh != null && sh.texture != null)
+                    _sheets[sh.key] = new ShapeAtlas.Sheet { Texture = sh.texture, Variants = Math.Max(1, sh.variants) };
+            Document.TexturePayloads.Clear();
+        }
+
         /// <summary>Разобрать JSON эффекта (файл из library/ редактора).</summary>
         public static ArcadiaEffectData Parse(string json) => new ArcadiaEffectData(EffectDocument.Parse(json));
+
+        /// <summary>Загрузить импортированный эффект (<see cref="ArcadiaEffectAsset"/>), с кэшированием.</summary>
+        public static ArcadiaEffectData FromAsset(ArcadiaEffectAsset asset)
+        {
+            if (asset == null) throw new ArgumentNullException(nameof(asset));
+            string key = ArcadiaEffectData.KeyOf("afx", asset);
+            if (Cache.TryGetValue(key, out var d) && d.Document != null) return d;
+            d = new ArcadiaEffectData(asset);
+            Cache[key] = d;
+            return d;
+        }
+
+        /// <summary>Готовый (запечённый импортёром) атлас фигуры, если он есть.</summary>
+        internal ShapeAtlas.Sheet FindSheet(SpriteRef r, double glowBlur)
+        {
+            if (_sheets.Count == 0) return null;
+            return _sheets.TryGetValue(ShapeAtlas.KeyOf(r, glowBlur), out var s) ? s : null;
+        }
 
         /// <summary>Загрузить с кэшированием по ключу (например, instanceID ассета).</summary>
         public static ArcadiaEffectData Get(string key, Func<string> json)
@@ -59,6 +96,24 @@ namespace InteractiveSoftware.ArcadiaEffects
             d = Parse(json());
             Cache[key] = d;
             return d;
+        }
+
+        private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<UnityEngine.Object, string> Keys =
+            new System.Runtime.CompilerServices.ConditionalWeakTable<UnityEngine.Object, string>();
+        private static int _keyCounter;
+
+        /// <summary>
+        /// Ключ кэша для ассета: по ссылке на объект, без GetInstanceID (в Unity 6.5 он запрещён),
+        /// поэтому одинаково работает во всех версиях Unity.
+        /// </summary>
+        public static string KeyOf(string prefix, UnityEngine.Object asset)
+        {
+            if (!Keys.TryGetValue(asset, out string id))
+            {
+                id = (++_keyCounter).ToString(System.Globalization.CultureInfo.InvariantCulture);
+                Keys.Add(asset, id);
+            }
+            return prefix + ":" + id;
         }
 
         /// <summary>Растёт при каждом сбросе кэша — плееры по нему понимают, что пора перезагрузиться.</summary>
@@ -87,8 +142,10 @@ namespace InteractiveSoftware.ArcadiaEffects
 
         public void Dispose()
         {
-            foreach (var t in _textures.Values) if (t.Texture != null) MeshPool.Destroy(t.Texture);
+            if (_ownsTextures)
+                foreach (var t in _textures.Values) if (t.Texture != null) MeshPool.Destroy(t.Texture);
             _textures.Clear();
+            _sheets.Clear();
         }
 
         private static readonly HashSet<string> Warned = new HashSet<string>();
@@ -115,11 +172,37 @@ namespace InteractiveSoftware.ArcadiaEffects
                 Debug.LogError("[ArcadiaEffects] Texture '" + name + "' has broken base64 payload.");
                 return null;
             }
+            Texture2D tex = DecodeImage(bytes, name, false);
+            if (tex == null) Debug.LogError("[ArcadiaEffects] Texture '" + name + "' could not be decoded (" + header + ").");
+            return tex;
+        }
+
+        /// <summary>Байты data URL (null — не base64 или WebP; mime — тип картинки).</summary>
+        internal static byte[] DataUrlBytes(string url, out string mime)
+        {
+            mime = null;
+            int comma = url.IndexOf(',');
+            if (!url.StartsWith("data:", StringComparison.Ordinal) || comma < 0) return null;
+            string header = url.Substring(5, comma - 5);
+            int semi = header.IndexOf(';');
+            mime = semi >= 0 ? header.Substring(0, semi) : header;
+            try
+            {
+                return Convert.FromBase64String(url.Substring(comma + 1));
+            }
+            catch (FormatException)
+            {
+                return null;
+            }
+        }
+
+        /// <summary>PNG/JPG -> премультиплицированная линейная RGBA32-текстура.</summary>
+        internal static Texture2D DecodeImage(byte[] bytes, string name, bool readable)
+        {
             var tmp = new Texture2D(2, 2, TextureFormat.RGBA32, false, true);
             if (!tmp.LoadImage(bytes, false))
             {
                 MeshPool.Destroy(tmp);
-                Debug.LogError("[ArcadiaEffects] Texture '" + name + "' could not be decoded (" + header + ").");
                 return null;
             }
             // премультипликация: Canvas2D фильтрует и смешивает премультиплицированные цвета
@@ -138,7 +221,7 @@ namespace InteractiveSoftware.ArcadiaEffects
                 hideFlags = HideFlags.DontSave
             };
             tex.SetPixels32(px);
-            tex.Apply(false, true);
+            tex.Apply(false, !readable);
             MeshPool.Destroy(tmp);
             return tex;
         }
@@ -211,6 +294,9 @@ namespace InteractiveSoftware.ArcadiaEffects
 
         public static double QuantizeBlur(double blurFrac) => Js.Round(Js.Clamp(blurFrac, 0.02, 0.6) * 40) / 40;
 
+        /// <summary>Ключ атласа: фигура + параметры + квантованный блюр свечения.</summary>
+        public static string KeyOf(SpriteRef r, double glowBlur) => Key(r, QuantizeBlur(glowBlur));
+
         private static string Key(SpriteRef r, double bq)
         {
             return r.ShapeId + "|" + r.Th + "|" + r.N + "|" + r.Inr + "|" + r.Taper + "|" + bq.ToString("R", System.Globalization.CultureInfo.InvariantCulture);
@@ -231,9 +317,29 @@ namespace InteractiveSoftware.ArcadiaEffects
 
         private static Sheet Build(SpriteRef r, double bq)
         {
-            int variants = ShapeLibraryInfo.VariantsOf(r.ShapeId);
-            int w = CellW, h = RowH * variants;
-            var px = new Color32[w * h];
+            byte[] a = BuildAlpha(r, bq, out int w, out int h, out int variants);
+            var tex = new Texture2D(w, h, TextureFormat.Alpha8, false, true)
+            {
+                name = "ArcadiaShape_" + r.ShapeId,
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            tex.SetPixelData(a, 0);
+            tex.Apply(false, true);
+            return new Sheet { Texture = tex, Variants = variants };
+        }
+
+        /// <summary>
+        /// Альфа атласа фигуры (Alpha8, строки снизу вверх — как в Texture2D). Фигуры всегда
+        /// тонируются, цвет текстуры не нужен, поэтому один канал — вчетверо меньше памяти.
+        /// </summary>
+        public static byte[] BuildAlpha(SpriteRef r, double bq, out int w, out int h, out int variants)
+        {
+            variants = ShapeLibraryInfo.VariantsOf(r.ShapeId);
+            w = CellW;
+            h = RowH * variants;
+            var px = new byte[w * h];
             for (int v = 0; v < variants; v++)
             {
                 float[] baseA = ShapeRasterizer.Draw(r.ShapeId, r, v);
@@ -242,28 +348,18 @@ namespace InteractiveSoftware.ArcadiaEffects
                 Blit(px, w, h, baseA, ShapeRasterizer.Base, ShapeRasterizer.Base, Pad, rowTop + Pad);
                 Blit(px, w, h, glowA, GlowW, GlowW, Pad * 3 + ShapeRasterizer.Base, rowTop + Pad);
             }
-            var tex = new Texture2D(w, h, TextureFormat.RGBA32, false, true)
-            {
-                name = "ArcadiaShape_" + r.ShapeId,
-                wrapMode = TextureWrapMode.Clamp,
-                filterMode = FilterMode.Bilinear,
-                hideFlags = HideFlags.HideAndDontSave
-            };
-            tex.SetPixels32(px);
-            tex.Apply(false, true);
-            return new Sheet { Texture = tex, Variants = variants };
+            return px;
         }
 
         // a — альфа сверху вниз; в Texture2D строка 0 — низ, поэтому переворачиваем
-        private static void Blit(Color32[] dst, int dw, int dh, float[] a, int aw, int ah, int x0, int yTop)
+        private static void Blit(byte[] dst, int dw, int dh, float[] a, int aw, int ah, int x0, int yTop)
         {
             for (int y = 0; y < ah; y++)
             {
                 int ty = dh - 1 - (yTop + y);
                 for (int x = 0; x < aw; x++)
                 {
-                    byte b = (byte)Mathf.Clamp(Mathf.RoundToInt(a[y * aw + x] * 255f), 0, 255);
-                    dst[ty * dw + x0 + x] = new Color32(b, b, b, b);
+                    dst[ty * dw + x0 + x] = (byte)Mathf.Clamp(Mathf.RoundToInt(a[y * aw + x] * 255f), 0, 255);
                 }
             }
         }

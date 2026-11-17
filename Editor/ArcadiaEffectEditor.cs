@@ -94,6 +94,12 @@ namespace InteractiveSoftware.ArcadiaEffects.Editor
             serializedObject.ApplyModifiedProperties();
             if (targets.Length != 1) return;
             var fx = (ArcadiaEffect)target;
+            if (fx.Renderer != null)
+            {
+                var r = fx.Renderer;
+                string canvas = r.UsesOutput ? (r.Output != null ? $"{r.Output.width}x{r.Output.height}, MSAA {r.Output.antiAliasing}" : "освобождён") : "не нужен";
+                EditorGUILayout.HelpBox($"Качество: {r.Quality}. Холст: {canvas}. Прямые слои: {(r.HasDirect ? "да" : "нет")}, сабмешей показа: {r.DisplaySubMeshCount}.", MessageType.None);
+            }
             ArcadiaPreviewGui.Draw(fx, fx.Document, fx.Time, fx.Duration, fx.ParticleCount,
                 fx.SetTime, fx.EditorAdvance, () => fx.PreviewTime, v => fx.PreviewTime = v);
             if (ArcadiaPreviewGui.IsPlaying(fx)) Repaint();
@@ -106,11 +112,12 @@ namespace InteractiveSoftware.ArcadiaEffects.Editor
     [CanEditMultipleObjects]
     internal sealed class ArcadiaEffectGraphicEditor : GraphicEditor
     {
-        private SerializedProperty _effect, _blend, _playback, _onFinished;
+        private SerializedProperty _asset, _effect, _blend, _playback, _onFinished;
 
         protected override void OnEnable()
         {
             base.OnEnable();
+            _asset = serializedObject.FindProperty("_asset");
             _effect = serializedObject.FindProperty("_effect");
             _blend = serializedObject.FindProperty("_blend");
             _playback = serializedObject.FindProperty("_playback");
@@ -120,6 +127,7 @@ namespace InteractiveSoftware.ArcadiaEffects.Editor
         public override void OnInspectorGUI()
         {
             serializedObject.Update();
+            EditorGUILayout.PropertyField(_asset);
             EditorGUILayout.PropertyField(_effect);
             EditorGUILayout.PropertyField(_blend);
             AppearanceControlsGUI();
@@ -155,9 +163,16 @@ namespace InteractiveSoftware.ArcadiaEffects.Editor
         {
             foreach (string path in imported)
             {
-                if (!path.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase)) continue;
-                var a = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
-                if (a != null) ArcadiaEffectData.Invalidate("asset:" + a.GetInstanceID());
+                if (path.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    var a = AssetDatabase.LoadAssetAtPath<TextAsset>(path);
+                    if (a != null) ArcadiaEffectData.Invalidate(ArcadiaEffectData.KeyOf("asset", a));
+                }
+                else if (path.EndsWith(".afx", System.StringComparison.OrdinalIgnoreCase))
+                {
+                    var a = AssetDatabase.LoadAssetAtPath<ArcadiaEffectAsset>(path);
+                    if (a != null) ArcadiaEffectData.Invalidate(ArcadiaEffectData.KeyOf("afx", a));
+                }
             }
         }
     }
@@ -193,9 +208,14 @@ namespace InteractiveSoftware.ArcadiaEffects.Editor
 
         private static void AssignSelectedEffect(ArcadiaEffect fx)
         {
-            var json = Selection.objects.OfType<TextAsset>().FirstOrDefault();
-            if (json == null) return;
-            fx.Effect = json;
+            var afx = Selection.objects.OfType<ArcadiaEffectAsset>().FirstOrDefault();
+            if (afx != null) fx.Asset = afx;
+            else
+            {
+                var json = Selection.objects.OfType<TextAsset>().FirstOrDefault();
+                if (json == null) return;
+                fx.Effect = json;
+            }
             EditorUtility.SetDirty(fx);
         }
     }
