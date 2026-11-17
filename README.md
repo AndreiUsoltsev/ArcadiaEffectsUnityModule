@@ -4,6 +4,8 @@
 
 Пространство имён: `InteractiveSoftware.ArcadiaEffects`.
 
+Редактор эффектов: https://github.com/AndreiUsoltsev/Arcadia-Effects. Инструкции для агентов (правила порта движка, проверка паритета) — `CLAUDE.md`.
+
 ## Как это устроено
 
 Формат эффекта в программе — JSON (`library/*.json`: документ и текстуры в base64). Пакет повторяет движок редактора:
